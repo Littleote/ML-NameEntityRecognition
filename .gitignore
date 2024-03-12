@@ -163,3 +163,7 @@ cython_debug/
 *.feat
 *.out
 *.stats
+
+# Pipeline files
+run.sh
+run.bat
