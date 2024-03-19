@@ -2,6 +2,7 @@
 
 import sys
 from os import listdir, path
+from typing import Iterator
 # import re
 
 from xml.dom.minidom import parse
@@ -46,20 +47,51 @@ def get_tag(token, spans):
 ## -- Extract features for each token in given sentence
 
 
+def addForm(feat: list[str], token: str, *, ext: str = ""):
+    feat.append(f"form{ext}={token}")
+
+
+def addFormCasing(feat: list[str], token: str, *, ext: str = ""):
+    feat.append(f"form{ext}={token.lower()}")
+    if token.islower():
+        feat.append(f"lower{ext}=True")
+    elif token.isupper():
+        feat.append(f"upper{ext}=True")
+
+
+def addGroupedSuffix(
+    feat: list[str],
+    token: str,
+    size: int | Iterator[int],
+    *,
+    ext: str = "",
+):
+    if isinstance(size, int):
+        size = [size]
+    for s in size:
+        feat.append(f"suf{s}{ext}={token[-s:].lower()}")
+
+
+def addCharacterSuffix(feat: list[str], token: str, size: int, *, ext: str = ""):
+    for s in range(1, min(size, len(token)) + 1):
+        feat.append(f"last{s}{ext}={token[-s].lower()}")
+
+
 def extract_features(tokens):
     # for each token, generate list of features and add it to the result
     result = []
     for k in range(0, len(tokens)):
-        tokenFeatures = []
+        features = []
         t = tokens[k][0]
 
         # Feature: Word
-        tokenFeatures.append("form=" + t.lower())
-        tokenFeatures.append("suf3=" + t[-3:].lower())
+        # addForm(features, t)
 
         # Feature: Word casing
-        tokenFeatures.append("lower=" + str(t == t.lower()))
-        tokenFeatures.append("upper=" + str(t == t.upper()))
+        addFormCasing(features, t)
+
+        # Feature: Suffix
+        addGroupedSuffix(features, t, 3)
 
         # Feature: What characters does it use
         # for char in range(ord("a"), ord("z") + 1):
@@ -70,26 +102,31 @@ def extract_features(tokens):
         if k > 0:
             tPrev = tokens[k - 1][0]
             # Feature: Word
-            tokenFeatures.append("formPrev=" + tPrev.lower())
-            tokenFeatures.append("suf3Prev=" + tPrev[-3:].lower())
+            # addForm(features, tPrev, ext="Prev")
 
             # Feature: Word casing
-            tokenFeatures.append("lowerPrev=" + str(tPrev == tPrev.lower()))
+            addFormCasing(features, tPrev, ext="Prev")
+
+            # Feature: Suffix
+            addGroupedSuffix(features, tPrev, 3, ext="Prev")
+
         else:
-            tokenFeatures.append("BoS")
+            features.append("BoS")
 
         if k < len(tokens) - 1:
             tNext = tokens[k + 1][0]
             # Feature: Word
-            tokenFeatures.append("formNext=" + tNext.lower())
-            tokenFeatures.append("suf3Next=" + tNext[-3:].lower())
+            # addForm(features, tNext, ext="Next")
 
             # Feature: Word casing
-            tokenFeatures.append("lowerNext=" + str(tNext == tNext.lower()))
-        else:
-            tokenFeatures.append("EoS")
+            addFormCasing(features, tNext, ext="Next")
 
-        result.append(tokenFeatures)
+            # Feature: Suffix
+            addGroupedSuffix(features, tNext, 3, ext="Next")
+        else:
+            features.append("EoS")
+
+        result.append(features)
 
     return result
 

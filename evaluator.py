@@ -150,7 +150,7 @@ def row(txt):
 
 
 def print_statistics(gold, predicted):
-    print(row("") + "  tp\t  fp\t  fn\t#pred\t#exp\tP\tR\tF1")
+    print(row("") + "  tp\t  fp\t  fn\t#pred\t#exp\t   P\t   R\t  F1")
     print(
         "------------------------------------------------------------------------------"
     )
@@ -171,7 +171,10 @@ def print_statistics(gold, predicted):
     print(
         "------------------------------------------------------------------------------"
     )
-    print(row("M.avg") + "-\t-\t-\t-\t-\t{:2.1%}\t{:2.1%}\t{:2.1%}".format(sP, sR, sF1))
+    print(
+        row("M.avg")
+        + "   -\t   -\t   -\t   -\t   -\t{:2.1%}\t{:2.1%}\t{:2.1%}".format(sP, sR, sF1)
+    )
 
     print(
         "------------------------------------------------------------------------------"
