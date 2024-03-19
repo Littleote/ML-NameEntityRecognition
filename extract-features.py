@@ -62,10 +62,10 @@ def extract_features(tokens):
         tokenFeatures.append("upper=" + str(t == t.upper()))
 
         # Feature: What characters does it use
-        for char in range(ord("a"), ord("z") + 1):
-            char = chr(char)
-            if char in t.lower():
-                tokenFeatures.append(f"has_{char}=True")
+        # for char in range(ord("a"), ord("z") + 1):
+        #     char = chr(char)
+        #     if char in t.lower():
+        #         tokenFeatures.append(f"has_{char}=True")
 
         if k > 0:
             tPrev = tokens[k - 1][0]

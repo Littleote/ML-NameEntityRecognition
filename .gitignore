@@ -167,4 +167,4 @@ cython_debug/
 
 # Pipeline files
 run.sh
-run.bat
+config.bat

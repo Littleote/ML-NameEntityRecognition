@@ -1,7 +1,22 @@
 @echo off
 
-set BASEDIR=.
-set PYTHON="C:\Users\Zhengyong Ji\anaconda3\python.exe"
+:: default configuration parameters
+if not defined BASEDIR (
+    set BASEDIR=.
+)
+if not defined PYTHON (
+    set PYTHON=python
+)
+
+:: change configuration
+if exist config.bat (
+    call config
+) else (
+    echo You can set your configuration at "config.bat"
+    echo :: Your configuration>config.bat
+    echo :: set BASEDIR=.>>config.bat
+    echo :: set PYTHON=python>>config.bat
+)
 
 :: convert datasets to feature vectors
 echo "Extracting features..."
