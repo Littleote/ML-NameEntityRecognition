@@ -1,7 +1,7 @@
 @echo off
 
 set BASEDIR=.
-set PYTHON=python
+set PYTHON="C:\Users\Zhengyong Ji\anaconda3\python.exe"
 
 :: convert datasets to feature vectors
 echo "Extracting features..."
