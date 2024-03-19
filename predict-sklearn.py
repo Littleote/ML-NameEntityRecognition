@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 import sys
-from joblib import dump, load
-from sklearn.feature_extraction import DictVectorizer
+from joblib import load  # , dump
+# from sklearn.feature_extraction import DictVectorizer
 
 
 def instances(fi):

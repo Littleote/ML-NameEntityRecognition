@@ -19,14 +19,14 @@ echo "Running CRF model..."
 echo "Evaluating CRF results..."
 %PYTHON% evaluator.py NER %BASEDIR%/data/devel devel-CRF.out > devel-CRF.stats
 
-:: train Naive Bayes model
-echo "Training Naive Bayes model..."
+:: train Scikit-learn model
+echo "Training Scikit-learn model..."
 %PYTHON% train-sklearn.py model.joblib vectorizer.joblib < train.clf.feat
-:: run Naive Bayes model
-echo "Running Naive Bayes model..."
+:: run Scikit-learn model
+echo "Running Scikit-learn model..."
 %PYTHON% predict-sklearn.py model.joblib vectorizer.joblib < devel.feat > devel-NB.out
-:: evaluate Naive Bayes results 
-echo "Evaluating Naive Bayes results..."
+:: evaluate Scikit-learn results 
+echo "Evaluating Scikit-learn results..."
 %PYTHON% evaluator.py NER %BASEDIR%/data/devel devel-NB.out > devel-NB.stats
 
 :: remove auxiliary files.

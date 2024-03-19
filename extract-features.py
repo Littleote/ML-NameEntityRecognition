@@ -53,20 +53,39 @@ def extract_features(tokens):
         tokenFeatures = []
         t = tokens[k][0]
 
-        tokenFeatures.append("form=" + t)
-        tokenFeatures.append("suf3=" + t[-3:])
+        # Feature: Word
+        tokenFeatures.append("form=" + t.lower())
+        tokenFeatures.append("suf3=" + t[-3:].lower())
+
+        # Feature: Word casing
+        tokenFeatures.append("lower=" + str(t == t.lower()))
+        tokenFeatures.append("upper=" + str(t == t.upper()))
+
+        # Feature: What characters does it use
+        for char in range(ord("a"), ord("z") + 1):
+            char = chr(char)
+            if char in t.lower():
+                tokenFeatures.append(f"has_{char}=True")
 
         if k > 0:
             tPrev = tokens[k - 1][0]
-            tokenFeatures.append("formPrev=" + tPrev)
-            tokenFeatures.append("suf3Prev=" + tPrev[-3:])
+            # Feature: Word
+            tokenFeatures.append("formPrev=" + tPrev.lower())
+            tokenFeatures.append("suf3Prev=" + tPrev[-3:].lower())
+
+            # Feature: Word casing
+            tokenFeatures.append("lowerPrev=" + str(tPrev == tPrev.lower()))
         else:
             tokenFeatures.append("BoS")
 
         if k < len(tokens) - 1:
             tNext = tokens[k + 1][0]
-            tokenFeatures.append("formNext=" + tNext)
-            tokenFeatures.append("suf3Next=" + tNext[-3:])
+            # Feature: Word
+            tokenFeatures.append("formNext=" + tNext.lower())
+            tokenFeatures.append("suf3Next=" + tNext[-3:].lower())
+
+            # Feature: Word casing
+            tokenFeatures.append("lowerNext=" + str(tNext == tNext.lower()))
         else:
             tokenFeatures.append("EoS")
 
