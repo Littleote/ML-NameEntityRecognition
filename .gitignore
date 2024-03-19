@@ -163,6 +163,7 @@ cython_debug/
 *.feat
 *.joblib
 *.out
+*.crf
 *.stats
 
 # Pipeline files
