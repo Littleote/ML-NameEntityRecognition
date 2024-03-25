@@ -47,6 +47,37 @@ def get_tag(token, spans):
 ## -- Extract features for each token in given sentence
 
 
+def runWindow(
+    tokens: list[list],
+    index: int,
+    window: list[int],
+    *fun_args: list,
+) -> list[str]:
+    bos, eos = True, True
+    features: list[str] = []
+    for delta in window:
+        k = index + delta
+        ext = ""
+        if delta < 0:
+            ext = f"Prev{-delta}"
+            if k < 0:
+                if bos:
+                    bos = False
+                    features.append("BoS")
+                continue
+        if delta > 0:
+            ext = f"Next{delta}"
+            if k >= len(tokens):
+                if eos:
+                    eos = False
+                    features.append("BoS")
+                continue
+        token = tokens[k][0]
+        for fun, *args in fun_args:
+            fun(features, token, *args, ext=ext)
+    return features
+
+
 def addForm(feat: list[str], token: str, *, ext: str = ""):
     feat.append(f"form{ext}={token}")
 
@@ -55,11 +86,13 @@ def addFormCasing(feat: list[str], token: str, *, ext: str = ""):
     feat.append(f"form{ext}={token.lower()}")
     if token.islower():
         feat.append(f"lower{ext}=True")
+    elif token[1:].islower():
+        feat.append(f"title{ext}=True")
     elif token.isupper():
         feat.append(f"upper{ext}=True")
 
 
-def addGroupedSuffix(
+def addSuffix(
     feat: list[str],
     token: str,
     size: int | Iterator[int],
@@ -72,7 +105,7 @@ def addGroupedSuffix(
         feat.append(f"suf{s}{ext}={token[-s:].lower()}")
 
 
-def addCharacterSuffix(feat: list[str], token: str, size: int, *, ext: str = ""):
+def addEndCharacters(feat: list[str], token: str, size: int, *, ext: str = ""):
     for s in range(1, min(size, len(token)) + 1):
         feat.append(f"last{s}{ext}={token[-s].lower()}")
 
@@ -81,51 +114,15 @@ def extract_features(tokens):
     # for each token, generate list of features and add it to the result
     result = []
     for k in range(0, len(tokens)):
-        features = []
-        t = tokens[k][0]
-
-        # Feature: Word
-        # addForm(features, t)
-
-        # Feature: Word casing
-        addFormCasing(features, t)
-
-        # Feature: Suffix
-        addGroupedSuffix(features, t, 3)
-
-        # Feature: What characters does it use
-        # for char in range(ord("a"), ord("z") + 1):
-        #     char = chr(char)
-        #     if char in t.lower():
-        #         tokenFeatures.append(f"has_{char}=True")
-
-        if k > 0:
-            tPrev = tokens[k - 1][0]
-            # Feature: Word
-            # addForm(features, tPrev, ext="Prev")
-
-            # Feature: Word casing
-            addFormCasing(features, tPrev, ext="Prev")
-
-            # Feature: Suffix
-            addGroupedSuffix(features, tPrev, 3, ext="Prev")
-
-        else:
-            features.append("BoS")
-
-        if k < len(tokens) - 1:
-            tNext = tokens[k + 1][0]
-            # Feature: Word
-            # addForm(features, tNext, ext="Next")
-
-            # Feature: Word casing
-            addFormCasing(features, tNext, ext="Next")
-
-            # Feature: Suffix
-            addGroupedSuffix(features, tNext, 3, ext="Next")
-        else:
-            features.append("EoS")
-
+        features = runWindow(
+            tokens,
+            k,
+            [-1, 0, +1],
+            # (addForm,),
+            (addFormCasing,),
+            (addSuffix, 3),
+            # (addEndCharacters, 3),
+        )
         result.append(features)
 
     return result

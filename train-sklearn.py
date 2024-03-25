@@ -10,9 +10,9 @@ from joblib import dump
 
 def fix_format(token):
     if "BoS" in token:
-        token = token.replace("BoS", "formPrev=BoS")
+        token = token.replace("BoS", "_=BoS")
     if "EoS" in token:
-        token = token.replace("EoS", "formNext=EoS")
+        token = token.replace("EoS", "_=EoS")
     return token
 
 
