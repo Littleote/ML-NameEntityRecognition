@@ -52,8 +52,9 @@ def runWindow(
     index: int,
     window: list[int],
     *fun_args: list,
+    mark_endings: bool = True,
 ) -> list[str]:
-    bos, eos = True, True
+    bos, eos = mark_endings, mark_endings
     features: list[str] = []
     for delta in window:
         k = index + delta
@@ -70,7 +71,7 @@ def runWindow(
             if k >= len(tokens):
                 if eos:
                     eos = False
-                    features.append("BoS")
+                    features.append("EoS")
                 continue
         token = tokens[k][0]
         for fun, *args in fun_args:
@@ -78,12 +79,14 @@ def runWindow(
     return features
 
 
-def addForm(feat: list[str], token: str, *, ext: str = ""):
-    feat.append(f"form{ext}={token}")
+def addWord(feat: list[str], token: str, lower: bool = True, *, ext: str = ""):
+    if lower:
+        feat.append(f"form{ext}={token.lower()}")
+    else:
+        feat.append(f"form{ext}={token}")
 
 
-def addFormCasing(feat: list[str], token: str, *, ext: str = ""):
-    feat.append(f"form{ext}={token.lower()}")
+def addCasing(feat: list[str], token: str, *, ext: str = ""):
     if token.islower():
         feat.append(f"lower{ext}=True")
     elif token[1:].islower():
@@ -105,9 +108,35 @@ def addSuffix(
         feat.append(f"suf{s}{ext}={token[-s:].lower()}")
 
 
+def addPrefix(
+    feat: list[str],
+    token: str,
+    size: int | Iterator[int],
+    *,
+    ext: str = "",
+):
+    if isinstance(size, int):
+        size = [size]
+    for s in size:
+        feat.append(f"pref{s}{ext}={token[:s].lower()}")
+
+
 def addEndCharacters(feat: list[str], token: str, size: int, *, ext: str = ""):
     for s in range(1, min(size, len(token)) + 1):
         feat.append(f"last{s}{ext}={token[-s].lower()}")
+
+
+def addStartCharacters(feat: list[str], token: str, size: int, *, ext: str = ""):
+    for s in range(1, min(size, len(token)) + 1):
+        feat.append(f"first{s}{ext}={token[s].lower()}")
+
+
+def addNGram(feat: list[str], token: str, size: int, *, ext: str = ""):
+    token = token.lower()
+    # Remove duplicates
+    ngrams = {token[i : i + size] for i in range(len(token) - (size - 1))}
+    for ngram in ngrams:
+        feat.appen(f"{size}gram{ngram}{ext}=True")
 
 
 def extract_features(tokens):
@@ -118,8 +147,8 @@ def extract_features(tokens):
             tokens,
             k,
             [-1, 0, +1],
-            # (addForm,),
-            (addFormCasing,),
+            (addWord, False),
+            # (addCasing,),
             (addSuffix, 3),
             # (addEndCharacters, 3),
         )
