@@ -1,13 +1,13 @@
 #! /usr/bin/python3
 
+import re
 import sys
 from os import listdir, path
 from typing import Iterator
-# import re
-
 from xml.dom.minidom import parse
-from nltk.tokenize import word_tokenize
 
+import pandas as pd
+from nltk.tokenize import word_tokenize
 
 ## --------- tokenize sentence -----------
 ## -- Tokenize sentence, returning tokens and span offsets
@@ -86,6 +86,10 @@ def addWord(feat: list[str], token: str, lower: bool = True, *, ext: str = ""):
         feat.append(f"form{ext}={token}")
 
 
+def addLength(feat: list[str], token: str, *, ext: str = ""):
+    feat.append(f"length{ext}={len(token)}")
+
+
 def addCasing(feat: list[str], token: str, *, ext: str = ""):
     if token.islower():
         feat.append(f"lower{ext}=True")
@@ -136,21 +140,91 @@ def addNGram(feat: list[str], token: str, size: int, *, ext: str = ""):
     # Remove duplicates
     ngrams = {token[i : i + size] for i in range(len(token) - (size - 1))}
     for ngram in ngrams:
-        feat.appen(f"{size}gram{ngram}{ext}=True")
+        feat.append(f"{size}gram{ngram}{ext}=True")
+
+
+MAPPINGS = {
+    "vowels": r"(?i)(a|e|i|o|u)|([a-z])|([0-9])|(-)|.",
+    "long": r"([a-z])|([A-Z])|([0-9])|(-)|.",
+    "short": r"([a-z]+)|([A-Z]+)|([0-9]+)|(-+)|[^a-zA-Z0-9\-]+",
+}
+
+
+def mapping_sub(matchobj: re.Match) -> str:
+    for i, group in enumerate(matchobj.groups(), 1):
+        if group is not None:
+            return chr(97 + i)
+    return chr(97)
+
+
+def addMapping(feat: list[str], token: str, mapping: str, *, ext: str = ""):
+    feat.append(
+        f"{mapping}Mapping{ext}={re.sub(MAPPINGS[mapping], mapping_sub, token)}"
+    )
+
+
+ALL_DRUGS: set[str] = set()
+POSITIONAL_DRUGS: list[set[str]] = list()
+
+
+def loadDictionary():
+    global ALL_DRUGS, POSITIONAL_DRUGS
+    drugs = pd.read_csv("drugbank/drugbank tokens.csv")
+    POSITIONAL_DRUGS = list(range(1 + drugs["Token number"].max()))
+    for position, drugs in drugs.groupby("Token number"):
+        POSITIONAL_DRUGS[position] = set(drugs["Common name"])
+    ALL_DRUGS = set.union(*POSITIONAL_DRUGS)
+
+
+def addDictionary(feat: list[str], token: str, *, ext: str = ""):
+    if token in ALL_DRUGS:
+        for position, drugs in enumerate(POSITIONAL_DRUGS):
+            if token in drugs:
+                feat.append(f"Drug{position}{ext}=True")
+    else:
+        feat.append(f"NoDrug{ext}=True")
 
 
 def extract_features(tokens):
     # for each token, generate list of features and add it to the result
+    loadDictionary()
     result = []
     for k in range(0, len(tokens)):
-        features = runWindow(
-            tokens,
-            k,
-            [-1, 0, +1],
-            (addWord, False),
-            # (addCasing,),
-            (addSuffix, 3),
-            # (addEndCharacters, 3),
+        features = (
+            runWindow(
+                tokens,
+                k,
+                [-3, -2, -1, 0, +1, +2, +3],
+                (addWord,),
+                (addLength,),
+                # (addCasing,),
+                (addMapping, "short"),
+                # (addMapping, "long"),
+                # (addNGram, 2),
+                # (addPrefix, 3),
+                (addSuffix, 3),
+            )
+            + runWindow(
+                tokens,
+                k,
+                [-1, 0, +1],
+                # (addWord,),
+                # (addCasing,),
+                # (addMapping, "short"),
+                (addMapping, "long"),
+                # (addDictionary,),
+                (addNGram, 2),
+                # (addPrefix, 3),
+                # (addSuffix, 3),
+                mark_endings=False,
+            )
+            + runWindow(
+                tokens,
+                k,
+                [0],
+                (addNGram, 3),
+                mark_endings=False,
+            )
         )
         result.append(features)
 
