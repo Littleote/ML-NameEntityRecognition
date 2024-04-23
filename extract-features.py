@@ -8,6 +8,7 @@ from xml.dom.minidom import parse
 
 import pandas as pd
 from nltk.tokenize import word_tokenize
+from nltk.tag import pos_tag
 
 ## --------- tokenize sentence -----------
 ## -- Tokenize sentence, returning tokens and span offsets
@@ -53,21 +54,22 @@ def runWindow(
     window: list[int],
     *fun_args: list,
     mark_endings: bool = True,
+    ext: str = "",
 ) -> list[str]:
     bos, eos = mark_endings, mark_endings
     features: list[str] = []
     for delta in window:
         k = index + delta
-        ext = ""
+        _ext = ext
         if delta < 0:
-            ext = f"Prev{-delta}"
+            _ext += f"Prev{-delta}"
             if k < 0:
                 if bos:
                     bos = False
                     features.append("BoS")
                 continue
         if delta > 0:
-            ext = f"Next{delta}"
+            _ext += f"Next{delta}"
             if k >= len(tokens):
                 if eos:
                     eos = False
@@ -75,7 +77,7 @@ def runWindow(
                 continue
         token = tokens[k][0]
         for fun, *args in fun_args:
-            fun(features, token, *args, ext=ext)
+            fun(features, token, *args, ext=_ext)
     return features
 
 
@@ -187,45 +189,28 @@ def addDictionary(feat: list[str], token: str, *, ext: str = ""):
 
 def extract_features(tokens):
     # for each token, generate list of features and add it to the result
-    loadDictionary()
+    ## To use the tags uncomment the following line
+    # tags = [[t[1]] for t in pos_tag([token[0] for token in tokens])]
     result = []
     for k in range(0, len(tokens)):
-        features = (
-            runWindow(
-                tokens,
-                k,
-                [-3, -2, -1, 0, +1, +2, +3],
-                (addWord,),
-                (addLength,),
-                # (addCasing,),
-                (addMapping, "short"),
-                # (addMapping, "long"),
-                # (addNGram, 2),
-                # (addPrefix, 3),
-                (addSuffix, 3),
-            )
-            + runWindow(
-                tokens,
-                k,
-                [-1, 0, +1],
-                # (addWord,),
-                # (addCasing,),
-                # (addMapping, "short"),
-                (addMapping, "long"),
-                # (addDictionary,),
-                (addNGram, 2),
-                # (addPrefix, 3),
-                # (addSuffix, 3),
-                mark_endings=False,
-            )
-            + runWindow(
-                tokens,
-                k,
-                [0],
-                (addNGram, 3),
-                mark_endings=False,
-            )
+        features = runWindow(
+            tokens,
+            k,
+            [-1, 0, +1],
+            (addWord,),
+            (addLength,),
+            (addMapping, "short"),
+            (addNGram, 2),
         )
+        ## To use the tags uncomment the following line
+        # + runWindow(
+        #     tags,
+        #     k,
+        #     [-1, 0, +1],
+        #     (addWord, False),
+        #     mark_endings=False,
+        #     ext="Tag",
+        # )
         result.append(features)
 
     return result
@@ -244,6 +229,7 @@ def extract_features(tokens):
 datadir = sys.argv[1]
 IS_CRF = len(sys.argv) > 2 and sys.argv[2].upper() == "CRF"
 
+loadDictionary()
 # process each file in directory
 for f in listdir(datadir):
     # parse XML file, obtaining a DOM tree
