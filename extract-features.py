@@ -175,11 +175,12 @@ def loadDictionary():
     drugs = pd.read_csv("drugbank/drugbank tokens.csv")
     POSITIONAL_DRUGS = list(range(1 + drugs["Token number"].max()))
     for position, drugs in drugs.groupby("Token number"):
-        POSITIONAL_DRUGS[position] = set(drugs["Common name"])
+        POSITIONAL_DRUGS[position] = set(drugs["Common name"].str.lower())
     ALL_DRUGS = set.union(*POSITIONAL_DRUGS)
 
 
 def addDictionary(feat: list[str], token: str, *, ext: str = ""):
+    token = token.lower()
     if token in ALL_DRUGS:
         for position, drugs in enumerate(POSITIONAL_DRUGS):
             if token in drugs:
@@ -201,26 +202,41 @@ def extract_features(tokens):
     # tags = [[t[1]] for t in pos_tag([token[0] for token in tokens])]
     result = []
     for k in range(0, len(tokens)):
-        features = runWindow(
-            tokens,
-            k,
-            [-2, -1, 0, +1, +2],
-            (addWord,),
-            (addLemma,),
-            (addLength,),
-            (addMapping, "short"),
-            (addDictionary,),
-            (addSuffix, 3),
+        features = (
+            ## #2 Best feature extraction
+            # runWindow(
+            #     tokens,
+            #     k,
+            #     [-1, 0, +1],
+            #     (addWord,),
+            #     (addLemma,),
+            #     (addLength,),
+            #     (addMapping, "short"),
+            #     (addDictionary,),
+            #     (addNGram, 2),
+            # )
+            ## #1 Best feature extraction
+            runWindow(
+                tokens,
+                k,
+                [-2, -1, 0, +1, +2],
+                (addWord,),
+                (addLemma,),
+                (addLength,),
+                (addMapping, "short"),
+                (addDictionary,),
+                (addSuffix, 3),
+            )
+            ## To use the tags uncomment the following line
+            # + runWindow(
+            #     tags,
+            #     k,
+            #     [-1, 0, +1],
+            #     (addWord, False),
+            #     mark_endings=False,
+            #     ext="Tag",
+            # )
         )
-        ## To use the tags uncomment the following line
-        # + runWindow(
-        #     tags,
-        #     k,
-        #     [-1, 0, +1],
-        #     (addWord, False),
-        #     mark_endings=False,
-        #     ext="Tag",
-        # )
         result.append(features)
 
     return result
