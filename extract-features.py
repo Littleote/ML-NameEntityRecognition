@@ -9,6 +9,7 @@ from xml.dom.minidom import parse
 import pandas as pd
 from nltk.tokenize import word_tokenize
 from nltk.tag import pos_tag
+from nltk.stem import WordNetLemmatizer
 
 ## --------- tokenize sentence -----------
 ## -- Tokenize sentence, returning tokens and span offsets
@@ -187,6 +188,13 @@ def addDictionary(feat: list[str], token: str, *, ext: str = ""):
         feat.append(f"NoDrug{ext}=True")
 
 
+LEMMATIZER = WordNetLemmatizer()
+
+
+def addLemma(feat: list[str], token: str, *, ext: str = ""):
+    feat.append(f"lemma={LEMMATIZER.lemmatize(token)}")
+
+
 def extract_features(tokens):
     # for each token, generate list of features and add it to the result
     ## To use the tags uncomment the following line
@@ -196,11 +204,13 @@ def extract_features(tokens):
         features = runWindow(
             tokens,
             k,
-            [-1, 0, +1],
+            [-2, -1, 0, +1, +2],
             (addWord,),
+            (addLemma,),
             (addLength,),
             (addMapping, "short"),
-            (addNGram, 2),
+            (addDictionary,),
+            (addSuffix, 3),
         )
         ## To use the tags uncomment the following line
         # + runWindow(
