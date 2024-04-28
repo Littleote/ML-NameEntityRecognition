@@ -35,8 +35,24 @@ if __name__ == "__main__":
     # get file where model will be written
     modelfile = sys.argv[1]
 
+    index = 2
+    params = {}
+    while len(sys.argv) >= index + 2:
+        key = sys.argv[index]
+        value = sys.argv[index + 1]
+        try:
+            value = int(value)
+        except ValueError:
+            try:
+                value = float(value)
+            except ValueError:
+                pass
+        params[key] = value
+        index += 2
+
     # Create a Trainer object.
-    trainer = pycrfsuite.Trainer()
+    verbose = len(params) == 0
+    trainer = pycrfsuite.Trainer(verbose=verbose)
 
     # Read training instances from STDIN, and append them to the trainer.
     for xseq, yseq in instances(sys.stdin):
@@ -48,10 +64,12 @@ if __name__ == "__main__":
     # This demonstrates how to list parameters and obtain their values.
     trainer.set("feature.minfreq", 1)  # mininum frequecy of a feature to consider it
     trainer.set("c2", 0.1)  # coefficient for L2 regularization
+    trainer.set_params(params)
 
-    print("Training with following parameters: ")
-    for name in trainer.params():
-        print(name, trainer.get(name), trainer.help(name), file=sys.stderr)
+    if verbose:
+        print("Training with following parameters: ")
+        for name in trainer.params():
+            print(name, trainer.get(name), trainer.help(name), file=sys.stderr)
 
     # Start training and dump model to modelfile
     trainer.train(modelfile, -1)

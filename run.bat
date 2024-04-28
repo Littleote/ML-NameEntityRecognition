@@ -32,7 +32,7 @@ echo "Running CRF model..."
 %PYTHON% predict.py model.crf < devel.feat > devel-CRF.out
 :: evaluate CRF results
 echo "Evaluating CRF results..."
-%PYTHON% evaluator.py NER %BASEDIR%/data/devel devel-CRF.out > devel-CRF.stats
+%PYTHON% evaluator.py NER %BASEDIR%/data/devel devel-CRF.out CM-CRF.png > devel-CRF.stats
 
 :: train Scikit-learn model
 echo "Training Scikit-learn model..."
@@ -42,7 +42,7 @@ echo "Running Scikit-learn model..."
 %PYTHON% predict-sklearn.py model.joblib vectorizer.joblib < devel.feat > devel-NB.out
 :: evaluate Scikit-learn results 
 echo "Evaluating Scikit-learn results..."
-%PYTHON% evaluator.py NER %BASEDIR%/data/devel devel-NB.out > devel-NB.stats
+%PYTHON% evaluator.py NER %BASEDIR%/data/devel devel-NB.out CM-NB.png > devel-NB.stats
 
 :: remove auxiliary files.
 del train.clf.feat

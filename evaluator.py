@@ -202,7 +202,7 @@ def print_statistics(gold, predicted):
 ## --
 
 
-def evaluate(task, golddir, outfile):
+def evaluate(task, golddir, outfile, imgfile):
     if task == "NER":
         # get set of expected entities in the whole golddir
         gold = load_gold_NER(golddir)
@@ -217,6 +217,50 @@ def evaluate(task, golddir, outfile):
 
     # compare both sets and compute statistics
     print_statistics(gold, predicted)
+    if imgfile is not None:
+        import seaborn as sns
+        import pandas as pd
+        from matplotlib import pyplot as plt
+
+        matrix = {
+            gk: {
+                pk: len(gvs.intersection(pvs))
+                for pk, pvs in predicted.items()
+                if pk not in ["CLASS", "NOCLASS"]
+            }
+            for gk, gvs in gold.items()
+            if gk not in ["CLASS", "NOCLASS"]
+        }
+        keys = sorted(list(matrix.keys()))
+
+        matrix["extra"] = {"missing": 0}
+        for pk, pvs in predicted.items():
+            if pk in ["CLASS", "NOCLASS"]:
+                continue
+            matrix["extra"][pk] = len(pvs) - sum(
+                [e.get(pk, 0) for e in matrix.values()]
+            )
+
+        for gk, gvs in gold.items():
+            if gk in ["CLASS", "NOCLASS"]:
+                continue
+            matrix[gk]["missing"] = len(gvs) - sum(matrix[gk].values())
+        matrix = (
+            pd.DataFrame(matrix)
+            .transpose()
+            .reindex(index=keys + ["extra"], columns=keys + ["missing"])
+        )
+        normalized = 100 * matrix.div(matrix.sum(axis="columns"), axis="index")
+        sns.heatmap(
+            normalized,
+            annot=matrix,
+            fmt="d",
+            vmin=0,
+            vmax=100,
+            cmap=plt.cm.Greens,
+            cbar_kws=dict(format="%d%%"),
+        )
+        plt.savefig(imgfile)
 
 
 ## --
@@ -227,12 +271,13 @@ def evaluate(task, golddir, outfile):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 4:
+    if len(sys.argv) not in [4, 5]:
         print("\n  Usage: evaluator.py (NER|DDI) golddir outfile\n")
         exit()
 
     task = sys.argv[1]
     golddir = sys.argv[2]
     outfile = sys.argv[3]
+    imgfile = sys.argv[4] if len(sys.argv) > 4 else None
 
-    evaluate(task, golddir, outfile)
+    evaluate(task, golddir, outfile, imgfile)
